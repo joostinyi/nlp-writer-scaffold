@@ -29,62 +29,55 @@ Coding center code - comment out the following 4 lines of code when ready for pr
 '''
 # load up the model into memory
 # you will need to have all your trained model in the app/ directory.
-ai = aitextgen(to_gpu=False, model=r"EleutherAI/gpt-neo-125M")
+
+'''
+##JACKSON##
+Need to change absolute path to download from gdrive and make model instances for each of the 2 saved models
+'''
+model_path = '/projects/ffb3608a-abf1-4dd2-af5c-8e98ccab67df/Batch_A/trained_models/'
+ai_pos = aitextgen(to_gpu=False, model_folder=model_path+'positive_output_directory')
+ai_neg = aitextgen(to_gpu=False, model_folder=model_path+'negative_output_directory')
 
 # setup the webserver
 # port may need to be changed if there are multiple flask servers running on same server
-port = 12345
+port = 12340
 base_url = get_base_url(port)
-app = Flask(__name__, static_url_path=base_url+'static')
+# app = Flask(__name__, static_url_path=base_url+'static')
 
 '''
 Deployment code - uncomment the following line of code when ready for production
 '''
-#app = Flask(__name__)
+app = Flask(__name__)
 
-#@app.route('/')
-@app.route(base_url)
+
+@app.route('/', methods = ['GET'])
+# @app.route(base_url, methods = ['GET'])
 def home():
-    return render_template('writer_home.html', generated=None)
+    return render_template('index.html')
 
-#@app.route('/', methods=['POST'])
-@app.route(base_url, methods=['POST'])
-def home_post():
-    return redirect(url_for('results'))
-
-#@app.route('/results')
-@app.route(base_url + '/results')
-def results():
-    return render_template('Write-your-story-with-AI.html', generated=None)
-
-#@app.route('/generate_text', methods=["POST"])
-@app.route(base_url + '/generate_text', methods=["POST"])
-def generate_text():
-    """
-    view function that will return json response for generated text. 
-    """
-
+@app.route('/result', methods = ['POST'])
+# @app.route(base_url+'/result', methods = ['POST'])
+def result():
     prompt = request.form['prompt']
-    if prompt is not None:
-        generated = ai.generate(
-            n=3,
-            batch_size=3,
-            prompt=str(prompt),
-            max_length=50,
-            temperature=0.9,
-            return_as_list=True
-        )
+    sentiment = str(request.form['sentiment'])
+    model = ai_pos if sentiment == 'positive' else ai_neg
+    generated = model.generate(
+        n=1,
+        batch_size=3,
+        prompt=str(prompt),
+        max_length=50,
+        temperature=0.9,
+        return_as_list=True
+    )
+    return render_template('index.html', generated=generated[0])
 
-    data = {'generated_ls': generated}
-
-    return jsonify(data)
 
 if __name__ == "__main__":
     '''
     coding center code
     '''
     # IMPORTANT: change the cocalcx.ai-camp.org to the site where you are editing this file.
-    website_url = 'cocalcx.ai-camp.org'
+    website_url = 'cocalc3.ai-camp.org'
     print(f"Try to open\n\n    https://{website_url}" + base_url + '\n\n')
 
     app.run(host = '0.0.0.0', port=port, debug=True)
@@ -95,3 +88,4 @@ if __name__ == "__main__":
     '''
     # Only for debugging while developing
     # app.run(port=80, debug=True)
+
